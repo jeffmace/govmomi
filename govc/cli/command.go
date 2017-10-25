@@ -133,13 +133,19 @@ func Run(args []string) int {
 			name = args[0]
 		}
 
-		args = args[1:]
-
 		cmd, ok = commands[name]
-		if !ok {
-			hwrc(name)
-			generalHelp(hw)
-			return rc
+		if ok {
+			args = args[1:]
+		} else {
+			if len(commands) == 1 {
+				for name, _ := range commands {
+					cmd, _ = commands[name]
+				}
+			} else {
+				hwrc(name)
+				generalHelp(hw)
+				return rc
+			}
 		}
 	}
 
