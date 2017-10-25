@@ -115,23 +115,32 @@ func Run(args []string) int {
 	}
 
 	var err error
+	var cmd Command
 
 	if len(args) == 0 {
-		generalHelp(hw)
-		return rc
-	}
+		if len(commands) == 1 {
+			for name, _ := range commands {
+				cmd, _ = commands[name]
+			}
+		} else {
+			generalHelp(hw)
+			return rc
+		}
+	} else {
+		// Look up real command name in aliases table.
+		name, ok := aliases[args[0]]
+		if !ok {
+			name = args[0]
+		}
 
-	// Look up real command name in aliases table.
-	name, ok := aliases[args[0]]
-	if !ok {
-		name = args[0]
-	}
+		args = args[1:]
 
-	cmd, ok := commands[name]
-	if !ok {
-		hwrc(name)
-		generalHelp(hw)
-		return rc
+		cmd, ok = commands[name]
+		if !ok {
+			hwrc(name)
+			generalHelp(hw)
+			return rc
+		}
 	}
 
 	fs := flag.NewFlagSet("", flag.ContinueOnError)
@@ -145,7 +154,7 @@ func Run(args []string) int {
 
 	cmd.Register(ctx, fs)
 
-	if err = fs.Parse(args[1:]); err != nil {
+	if err = fs.Parse(args); err != nil {
 		goto error
 	}
 

@@ -76,6 +76,8 @@ type ClientFlag struct {
 	tlsHostHash         string
 	tlsHandshakeTimeout time.Duration
 	client              *vim25.Client
+
+	DisablePersistence bool
 }
 
 var (
@@ -112,6 +114,11 @@ func (flag *ClientFlag) URLWithoutPassword() *url.URL {
 
 func (flag *ClientFlag) IsSecure() bool {
 	return !flag.insecure
+}
+
+func (flag *ClientFlag) SetInsecure(value bool) {
+	flag.insecure = value
+	return
 }
 
 func (flag *ClientFlag) String() string {
@@ -169,7 +176,7 @@ func (flag *ClientFlag) Register(ctx context.Context, f *flag.FlagSet) {
 			f.BoolVar(&flag.insecure, "k", insecure, usage)
 		}
 
-		{
+		if flag.DisablePersistence == false {
 			persist := true
 			switch env := strings.ToLower(os.Getenv(envPersist)); env {
 			case "0", "false":
@@ -178,6 +185,8 @@ func (flag *ClientFlag) Register(ctx context.Context, f *flag.FlagSet) {
 
 			usage := fmt.Sprintf("Persist session to disk [%s]", envPersist)
 			f.BoolVar(&flag.persist, "persist-session", persist, usage)
+		} else {
+			flag.persist = false
 		}
 
 		{
@@ -269,6 +278,87 @@ func (flag *ClientFlag) Process(ctx context.Context) error {
 
 		return nil
 	})
+}
+
+func (flag *ClientFlag) HasUser() bool {
+	if flag.url == nil {
+		return false
+	}
+
+	if flag.url.User == nil {
+		return false
+	}
+
+	return true
+}
+
+func (flag *ClientFlag) HasUsername() bool {
+	if flag.HasUser() == false {
+		return false
+	}
+
+	if flag.url.User.Username() == "" {
+		return false
+	}
+
+	return true
+}
+
+func (flag *ClientFlag) Username() string {
+	if flag.HasUsername() == true {
+		return flag.url.User.Username()
+	} else {
+		return ""
+	}
+}
+
+func (flag *ClientFlag) SetUsername(value string) error {
+	if flag.url == nil {
+		return errors.New("specify an " + cDescr)
+	}
+
+	password, isset := flag.url.User.Password()
+
+	if isset == true {
+		flag.url.User = url.UserPassword(value, password)
+	} else {
+		flag.url.User = url.User(value)
+	}
+
+	return nil
+}
+
+func (flag *ClientFlag) HasPassword() bool {
+	if flag.HasUser() == false {
+		return false
+	}
+
+	_, isset := flag.url.User.Password()
+	return isset
+}
+
+func (flag *ClientFlag) Password() string {
+	if flag.HasUser() == false {
+		return ""
+	}
+
+	password, _ := flag.url.User.Password()
+	return password
+}
+
+func (flag *ClientFlag) SetPassword(value string) error {
+	if flag.url == nil {
+		return errors.New("specify an " + cDescr)
+	}
+
+	username := flag.Username()
+	if value == "" {
+		flag.url.User = url.User(username)
+	} else {
+		flag.url.User = url.UserPassword(username, value)
+	}
+
+	return nil
 }
 
 // configure TLS and retry settings before making any connections

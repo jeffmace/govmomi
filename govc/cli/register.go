@@ -24,6 +24,10 @@ func Register(name string, c Command) {
 	commands[name] = c
 }
 
+func Unregister(name string) {
+	delete(commands, name)
+}
+
 func Alias(name string, alias string) {
 	aliases[alias] = name
 }
