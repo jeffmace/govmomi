@@ -128,7 +128,7 @@ type VirtualDiskDesc struct {
 	Capacity                string  `xml:"capacity,attr"`
 	CapacityAllocationUnits *string `xml:"capacityAllocationUnits,attr"`
 	Format                  *string `xml:"format,attr"`
-	PopulatedSize           *int    `xml:"populatedSize,attr"`
+	PopulatedSize           *int64  `xml:"populatedSize,attr"`
 	ParentRef               *string `xml:"parentRef,attr"`
 }
 
